@@ -6,4 +6,5 @@
     <string name="title_activity_selfie_full_size">SelfieFullSize</string>
 
     <string name="hello_world">Hello world!</string>
+    <string name="title_activity_preview_new">PreviewNewActivity</string>
 </resources>
