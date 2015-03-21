@@ -9,7 +9,5 @@
         app:showAsAction="always"
         android:title="Camera"
         android:orderInCategory="10"
-        android:icon="@drawable/ic_photo_camera_white_24dp"
-
-        />
+        android:icon="@drawable/ic_photo_camera_white_24dp" />
  </menu>

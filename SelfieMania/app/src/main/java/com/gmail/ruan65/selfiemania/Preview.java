@@ -15,6 +15,7 @@ import android.os.PersistableBundle;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -31,6 +32,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -90,7 +93,7 @@ public class Preview extends ActionBarActivity {
 
         fillData(extSelfieDir.listFiles(), null);
         sAdapter.notifyDataSetChanged();
-//        new CreateThumbsTask().execute();
+        new PrepareAndShowThumbBitmaps().execute();
     }
 
     private void fillData(File[] files, Bitmap[] imgs) {
@@ -104,18 +107,25 @@ public class Preview extends ActionBarActivity {
         }
     }
 
-    private class CreateThumbsTask extends AsyncTask<Void, Void, Bitmap[]> {
+    private class PrepareAndShowThumbBitmaps extends AsyncTask<Void, Void, Bitmap[]> {
 
-        File[] files = extSelfieDir.listFiles();
-        Bitmap[] thumbs = new Bitmap[files.length];
+        File[] imgFiles;
+        Bitmap[] thumbs;
 
         @Override
         protected Bitmap[] doInBackground(Void... params) {
 
-            for (int i = 0; i < thumbs.length; i++) {
-                Bitmap thumb = ThumbnailUtils.extractThumbnail(
-                        BitmapFactory.decodeFile(files[i].getPath()), THUMBSIZE, THUMBSIZE);
-                thumbs[i] = thumb;
+            imgFiles = extSelfieDir.listFiles();
+            thumbs = new Bitmap[imgFiles.length];
+
+            Arrays.sort(imgFiles);
+            int i = 0;
+            for (File f : imgFiles) {
+
+                String path = thumbDir.getPath() + "/" + f.getName();
+                Bitmap thumb = BitmapFactory.decodeFile(path);
+                thumbs[i++] = thumb == null ? tmp : thumb;
+                Log.d("ml", "path: " + path);
             }
             return thumbs;
         }
@@ -123,15 +133,14 @@ public class Preview extends ActionBarActivity {
         @Override
         protected void onPostExecute(Bitmap[] bitmaps) {
             super.onPostExecute(bitmaps);
-            fillData(files, thumbs);
+            fillData(imgFiles, thumbs);
             sAdapter.notifyDataSetChanged();
         }
     }
 
     private void saveThumbAsync(final File f) {
 
-        Log.d("ml", "file: " + f);
-        new Thread() {
+        Thread t = new Thread() {
             @Override
             public void run() {
                 super.run();
@@ -139,15 +148,11 @@ public class Preview extends ActionBarActivity {
                 FileOutputStream out = null;
                 try {
                     File file = new File(thumbDir, f.getName());
-                    Log.d("ml", "file for thumb: " + file.getPath());
                     out = new FileOutputStream(file);
                     Bitmap thumb = ThumbnailUtils.extractThumbnail(
                             BitmapFactory.decodeFile(f.getPath()), THUMBSIZE, THUMBSIZE);
-                    boolean success = thumb.compress(Bitmap.CompressFormat.JPEG, 100, out);
-//                    out.flush();
-                    Log.d("ml", "saving thumb: " + f.getPath() + " success: " + success);
+                    thumb.compress(Bitmap.CompressFormat.JPEG, 80, out);
                 } catch (Exception e) {
-                    e.printStackTrace();
                     Log.e("ml", e.getMessage());
                 } finally {
                     if (out != null) try {
@@ -157,7 +162,14 @@ public class Preview extends ActionBarActivity {
                     }
                 }
             }
-        }.start();
+        };
+        t.start();
+        try {
+            t.join();
+            new PrepareAndShowThumbBitmaps().execute();
+        } catch (InterruptedException e) {
+            Log.d("ml", "Something went wrong while updating thumbs: " + e.getMessage());
+        }
     }
 
     @Override
@@ -268,6 +280,17 @@ public class Preview extends ActionBarActivity {
         public void setImgFile(File f) {
             imgFile = f;
         }
+    }
+
+    /**
+     * This is for preventing app crash after pressing hardware Menu button
+     */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 }
 
