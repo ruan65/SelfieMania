@@ -1,5 +1,7 @@
 package com.gmail.ruan65.selfiemania;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -18,16 +20,19 @@ import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +44,9 @@ public class Preview extends ActionBarActivity {
 
     private static final int CAMERA_RESULT = 0xface;
     private static final int THUMBSIZE = 72;
+
+    private AlarmManager alarmMgr;
+    private PendingIntent alarmIntent;
 
     ListView listView;
 
@@ -60,6 +68,7 @@ public class Preview extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_preview);
         getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#689F38")));
+        getOverflowMenu();
 
         listView = (ListView) findViewById(R.id.list_previews);
 
@@ -200,6 +209,7 @@ public class Preview extends ActionBarActivity {
     }
 
 
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
@@ -218,10 +228,35 @@ public class Preview extends ActionBarActivity {
                     startActivityForResult(intent, CAMERA_RESULT);
                 }
                 break;
-            case R.id.action_settings:
+            case R.id.start_alarms:
+
+                setAlarm();
+                alarmMgr.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                        1000*60*2,
+                        1000*60*2,
+                        alarmIntent);
+
+                Toast.makeText(getApplicationContext(),
+                        "Alarms have been set",
+                        Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.stop_alarms:
+
+                setAlarm();
+                alarmMgr.cancel(alarmIntent);
+
+                Toast.makeText(getApplicationContext(),
+                        "Alarms have been canceled",
+                        Toast.LENGTH_SHORT).show();
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void setAlarm() {
+        alarmMgr = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        alarmIntent = PendingIntent.getBroadcast(getApplicationContext(), 0,
+                new Intent(this, AlarmReceiver.class), 0);
     }
 
     private static File getOutputImgFile(File imgStorageDir, String name) {
@@ -279,6 +314,8 @@ public class Preview extends ActionBarActivity {
         }
     }
 
+
+
     /**
      * This is for preventing app crash after pressing hardware Menu button
      */
@@ -288,6 +325,23 @@ public class Preview extends ActionBarActivity {
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    /**
+     * This is for always showing menu in the action bar
+     */
+    private void getOverflowMenu() {
+
+        try {
+            ViewConfiguration config = ViewConfiguration.get(this);
+            Field menuKeyField = ViewConfiguration.class.getDeclaredField("sHasPermanentMenuKey");
+            if(menuKeyField != null) {
+                menuKeyField.setAccessible(true);
+                menuKeyField.setBoolean(config, false);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
 

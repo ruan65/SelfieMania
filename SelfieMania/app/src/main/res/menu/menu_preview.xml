@@ -2,8 +2,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.gmail.ruan65.selfiemania.Preview">
-    <item android:id="@+id/action_settings" android:title="@string/action_settings"
-        android:orderInCategory="100" app:showAsAction="never" />
+    <item android:id="@+id/start_alarms"
+        android:title="Start Alarms"
+        app:showAsAction="never" />
+
+    <item android:id="@+id/stop_alarms"
+        android:title="Stop Alarms"
+        app:showAsAction="never" />
     
     <item android:id="@+id/camera"
         app:showAsAction="always"
